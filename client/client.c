@@ -8,26 +8,26 @@
 #include "head.h"
 
 char server_ip[20];
-int server_port, msg_id, sockfd, per_fd;
+int relogin_num = 3;
+int server_port, msg_id, sockfd, per_fd, check_for_relogin = 3;
 char token[100];
 char *config = "/home/lhx/CProject/monitor_system/client/monitor.conf";
-char *persistence = "/home/lhx/CProject/monitor_system/client/persistence";
+char *mem_persistence = "/home/lhx/CProject/monitor_system/client/persistence";
 char cpu_buf[100];
 char mem_buf[100];
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 int main(int argc, char **argv) {
-    pthread_t rid, mid;
+    pthread_t rid, mid, hid;
     //创建消息队列
     key_t key = ftok("/home/lhx/CProject/monitor_system/client", 100);
     if ((msg_id = msgget(key, IPC_CREAT)) < 0) {
         perror("msgget");
         exit(1);
     }
-    if ((per_fd = open(persistence, O_CREAT | O_RDWR | O_APPEND, 0666)) < 0) {
-        perror("persistence file open");
-        exit(1);
-    }
+
     int opt;
     while ((opt = getopt(argc, argv, "s:p:t:")) != -1) {
         switch(opt) {
@@ -87,6 +87,8 @@ int main(int argc, char **argv) {
     //新建一个检测线程，用以进行系统资源的获取
     pthread_create(&rid, NULL, do_work, NULL);
     pthread_create(&mid, NULL, do_msg_queue, NULL);
+    pthread_create(&hid, NULL, heart_beat_from_client, NULL);
+
 
     while (1) {
         struct monitor_msg_ds msg;

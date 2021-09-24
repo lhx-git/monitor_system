@@ -43,4 +43,9 @@ void *do_login(void *arg);
 void *work_on_reactor(void *arg);
 void *do_work(void *arg);
 void *do_msg_queue(void *arg);
+void *heart_beat_from_client(void *arg);
+int open_file(char *filename);
+void empty_file(char *filename);
+void do_with_file(char *filename);
+int relogin();
 #endif
