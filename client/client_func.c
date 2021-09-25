@@ -103,21 +103,27 @@ void *do_msg_queue(void *arg) {
         }
     }
 }
-//todo 条件变量使用可能有问题，只在第一次的时候触发了。之后就算满足条件，check_for_relogin=0，也不会执行relogin
+
+
 void *heart_beat_from_client(void *arg) {
-    pthread_mutex_lock(&mutex);
-    //当check_for_relogin > 0时，该线程挂起。
-    while (check_for_relogin > 0) {//循环作用是当check_for_relogin！=0 时 线程意外被唤醒
-        pthread_cond_wait(&cond, &mutex);
+    //!!没有使用while循环，当然之触发一次了！！！！
+    while (1) {
+        DBG(YELLOW"heart_beat_from_client thread was arise\n");
+        pthread_mutex_lock(&mutex);
+        //当check_for_relogin > 0时，该线程挂起。
+        while (check_for_relogin > 0) {//循环作用是当check_for_relogin！=0 时 线程意外被唤醒
+            pthread_cond_wait(&cond, &mutex);
+        }
+        DBG(RED"relogin\n");
+        check_for_relogin = relogin_num;
+        sockfd++;
+        sleep(7);
+        if (relogin() > 0) {
+            do_with_file(mem_persistence);
+        }
+        pthread_mutex_unlock(&mutex);
     }
-    DBG(RED"relogin\n");
-    check_for_relogin = relogin_num;
-    sockfd++;
-    sleep(7);
-    if (relogin() > 0) {
-        do_with_file(mem_persistence);
-    }
-    pthread_mutex_unlock(&mutex);
+
 }
 
 int relogin() {
@@ -128,8 +134,8 @@ int relogin() {
     }
     //send
     char buff[500] = {0};
-    DBG(RED"TOKEN = %s", token);
-    DBG(RED"new sockfd = %d", sockfd);
+    DBG(RED"TOKEN = %s\n", token);
+    DBG(RED"new sockfd = %d\n", sockfd);
     if (send(sockfd, token, strlen(token), 0) < 0) {
         close(sockfd);
         perror("send token");
@@ -137,7 +143,7 @@ int relogin() {
     }
 
     //防止无限等待
-    /*struct timeval tv;
+    struct timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = 1000000;
 
@@ -148,7 +154,7 @@ int relogin() {
         fprintf(stderr, RED"Server donot response for token!\n"NONE);
         close(sockfd);
         return 0;
-    }*/
+    }
     int ack = 0;
     if (recv(sockfd, &ack, sizeof(ack), 0) < 0) {
         close(sockfd);
@@ -162,9 +168,8 @@ int relogin() {
     return 1;
 }
 
-
+//读文件，将文件内从从新打包成消息重新发送，最后清空文件。
 void do_with_file(char *filename) {
-    //读文件，将文件内从从新打包成消息重新发送，最后清空文件。
     //找了半天的bug！！！！！
     // 由于缓存temp设置太小，导致出现stack smashing detected错误。
     char a[500];
@@ -186,12 +191,6 @@ void do_with_file(char *filename) {
             DBG(YELLOW"%ld\n", strlen(temp));
             if (send(sockfd, (void *)&msg, sizeof (msg), 0) < 0) {
                 perror("send mem message");
-                /*per_fd = open_file(mem_persistence);
-                if (write(per_fd, temp, strlen(temp)) < 0) {
-                    perror("write mem persistence file");
-                    exit(1);
-                }
-                close(per_fd);*/
             }
         }
     }
@@ -209,14 +208,13 @@ int open_file(char *filename) {
     return fd;
 }
 
-
-//todo文件并没有被清空
 void empty_file(char *filename) {
-    int fd;
     //以“w“的方式打开文件相当与清空文件。
-    if ((fd = open(filename, O_WRONLY)) < 0) {
+    //不能使用系统调用open（w），不会清空文件。
+    FILE *fp;
+    if ((fp = fopen(filename, "w")) == NULL) {
         perror("empty file");
         exit(1);
     }
-    close(fd);
+    fclose(fp);
 }
