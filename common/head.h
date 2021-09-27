@@ -51,6 +51,7 @@ int socket_connect(const char *ip, int port);*/
 #include "common.h"
 #include "monitor.h"
 #include "cJSON.h"
+#include "thread_poll.h"
 //#include "datatype.h"
 //#include "file_transfer.h"
 //#include "wechat.h"

@@ -14,6 +14,7 @@ set(SERVER_DEP
 set(CLIENT_DEP client/client.c
         common/common.c
         common/cJSON.c
+        common/thread_poll.c
         client/client_func.c)
 
 #生成可执行文件

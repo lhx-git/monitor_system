@@ -5,6 +5,7 @@ extern char token[100];
 extern struct client_ds* clients;
 extern int epollfd, max, cur_max;
 
+//todo finish theadpool
 
 void *work_on_reactor(void *arg) {
     struct epoll_event ev, events[MAXEVENTS];
@@ -47,6 +48,7 @@ void *work_on_reactor(void *arg) {
                 DBG(BLUE"%s\n", left_mem_value->valuestring);
                 DBG(BLUE"%s\n", mem_usage_rate->valuestring);
                 DBG(BLUE"%s\n", mem_prediction_rate->valuestring);
+                //write to db
             }
         }
     }

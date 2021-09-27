@@ -8,8 +8,11 @@ int epollfd, max, cur_max;
 
 struct client_ds *clients;
 
+task_queue *tq;
+
 int main(int argc, char **argv) {
     int opt;
+    tq = task_queue_init();
     //实现守护进程
     int server_listen, sockfd;
     pthread_t login_tid, reactor_tid;
