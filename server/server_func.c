@@ -3,11 +3,45 @@
 #define MAXEVENTS 5
 extern char token[100];
 extern struct client_ds* clients;
-extern int epollfd, max, cur_max;
-
+extern int epollfd, max, cur_max, server_listen;
 //todo finish theadpool
 
+void *do_task(void *args) {
+    //子线程脱离主线程，子线程运行结束后，自己进行资源回收。
+    pthread_detach(pthread_self());
+    DBG(RED"thread %lu is working\n", pthread_self());
+    task_queue *tq = (task_queue *)args;
+    while (1) {
+            struct monitor_msg_ds* msg = pop(tq);
+            if (msg == NULL) {
+                DBG(RED"msg is empty!!\n");
+                continue;
+            }
+            //解析cJSON数据
+            cJSON *mem_data;
+            mem_data = cJSON_Parse(msg->buff);
+            cJSON *now_time = NULL;
+            cJSON *total_mem_value = NULL;
+            cJSON *left_mem_value = NULL;
+            cJSON *mem_usage_rate = NULL;
+            cJSON *mem_prediction_rate = NULL;
+            now_time = cJSON_GetObjectItem(mem_data, "now_time");
+            total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
+            left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
+            mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
+            mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
+            DBG(BLUE"%s\n", now_time->valuestring);
+            DBG(BLUE"%s\n", total_mem_value->valuestring);
+            DBG(BLUE"%s\n", left_mem_value->valuestring);
+            DBG(BLUE"%s\n", mem_usage_rate->valuestring);
+            DBG(BLUE"%s\n", mem_prediction_rate->valuestring);
+            //write to db
+        }
+
+}
+
 void *work_on_reactor(void *arg) {
+    task_queue *tq = (task_queue *)arg;
     struct epoll_event ev, events[MAXEVENTS];
     for (;;) {
         int nfds = epoll_wait(epollfd, events, MAXEVENTS, -1); 
@@ -16,39 +50,19 @@ void *work_on_reactor(void *arg) {
             exit(1);
         }
         for (int i = 0; i < nfds; i++) {
-            struct monitor_msg_ds msg;
-            bzero(&msg, sizeof(msg));
             int sockfd = events[i].data.fd;
-            int ret = recv(events[i].data.fd, (void *)&msg, sizeof(msg), 0);
-            if (ret <= 0) {
-                epoll_ctl(epollfd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
+            struct monitor_msg_ds msg;
+            if (recv(sockfd, &msg, sizeof(msg), 0) <= 0) {
+                epoll_ctl(epollfd, EPOLL_CTL_DEL, sockfd, NULL);
                 close(sockfd);
-                continue;
             }
             if (msg.type & PI_ACK) {
                 DBG(GREEN"<ACK> ack received from %s!\n", inet_ntoa(clients[sockfd].addr.sin_addr));
                 //同时有两个线程在写isonline
                 clients[sockfd].isonline = 5;
-            } else if (msg.type & SYS_MEM) {
-                //解析cJSON数据
-                cJSON *mem_data;
-                mem_data = cJSON_Parse(msg.buff);
-                cJSON *now_time = NULL;
-                cJSON *total_mem_value = NULL;
-                cJSON *left_mem_value = NULL;
-                cJSON *mem_usage_rate = NULL;
-                cJSON *mem_prediction_rate = NULL;
-                now_time = cJSON_GetObjectItem(mem_data, "now_time");
-                total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
-                left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
-                mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
-                mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
-                DBG(BLUE"%s\n", now_time->valuestring);
-                DBG(BLUE"%s\n", total_mem_value->valuestring);
-                DBG(BLUE"%s\n", left_mem_value->valuestring);
-                DBG(BLUE"%s\n", mem_usage_rate->valuestring);
-                DBG(BLUE"%s\n", mem_prediction_rate->valuestring);
-                //write to db
+            }  else if (msg.type & SYS_MEM) {
+                push(tq, &msg);
+                DBG(YELLOW"tq size = %d\n", tq->cur_num);
             }
         }
     }
@@ -59,7 +73,6 @@ void *work_on_reactor(void *arg) {
 void heart_beat(int signum) {
     struct monitor_msg_ds msg;
     msg.type = PI_HEART;
-
     for (int i = 3; i <= cur_max; i++) {
         if (clients[i].isonline > 0) {
             send(clients[i].sockfd, (void *)&msg, sizeof(msg), 0);
@@ -136,7 +149,7 @@ void* do_login(void *arg) {
         }
         //sockfd就是客户
         clients[sockfd].sockfd = sockfd;
-        clients[sockfd].isonline = 5;
+        clients[sockfd].isonline = 10;
         clients[sockfd].addr = client;
 
         //注册到反应堆中去

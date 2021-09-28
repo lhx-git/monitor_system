@@ -4,17 +4,16 @@ static int opt;
 static int port;
 char *config = "/home/lhx/CProject/monitor_system/server/monitor.conf";
 char token[100];
-int epollfd, max, cur_max;
+int epollfd, max, cur_max, thread_num, server_listen;
 
 struct client_ds *clients;
 
-task_queue *tq;
+
 
 int main(int argc, char **argv) {
     int opt;
-    tq = task_queue_init();
+    task_queue *tq = task_queue_init(10000);
     //实现守护进程
-    int server_listen, sockfd;
     pthread_t login_tid, reactor_tid;
     while ((opt = getopt(argc, argv, "p:t:m:")) != -1) {
         switch (opt) {
@@ -33,6 +32,7 @@ int main(int argc, char **argv) {
     }
     if (!port) port = atoi(get_conf_value(config, "PORT"));
     if (!max) max = atoi(get_conf_value(config, "MAX"));
+    if (!thread_num) thread_num = atoi(get_conf_value(config, "TRHEAD_NUM"));
     if (!strlen(token)) strcpy(token, get_conf_value(config, "TOKEN"));
     signal(SIGALRM, heart_beat);
 
@@ -61,8 +61,15 @@ int main(int argc, char **argv) {
 
 
     pthread_create(&login_tid, NULL, do_login, (void *)&server_listen);
-    pthread_create(&reactor_tid, NULL, work_on_reactor, NULL);
+    pthread_create(&reactor_tid, NULL, work_on_reactor, tq);
     DBG(GREEN"ready to server!\n");
+
+    pthread_t threads[thread_num];
+    DBG(RED"create %d threads\n", thread_num);
+    for (int i = 0; i < thread_num; i++) {
+        pthread_create(&threads[i], NULL, do_task, tq);
+    }
+    DBG(RED"Finish\n");
     while (1) {
         sleep(10);
     }

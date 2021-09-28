@@ -39,6 +39,7 @@ struct client_ds {
 };
 void heart_beat(int signum);
 void check_for_mem();
+void *do_task(void *arg);
 void *do_login(void *arg);
 void *work_on_reactor(void *arg);
 void *do_work(void *arg);

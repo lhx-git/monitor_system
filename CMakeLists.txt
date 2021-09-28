@@ -9,12 +9,12 @@ set(SERVER_DEP
         server/server.c
         server/server_func.c
         common/common.c
+        common/thread_poll.c
         common/cJSON.c)
 
 set(CLIENT_DEP client/client.c
         common/common.c
         common/cJSON.c
-        common/thread_poll.c
         client/client_func.c)
 
 #生成可执行文件
