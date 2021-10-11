@@ -6,7 +6,7 @@ task_queue* task_queue_init(int task_queue_size) {
     task_queue *tp = (task_queue *)malloc(sizeof(task_queue));
     tp->task_queue_size = task_queue_size;
     DBG(GREEN"init task que with size = %d\n", tp->task_queue_size);
-    tp->data = (int *)malloc(sizeof(int) * tp->task_queue_size);
+    tp->data = (int *)malloc(sizeof(struct monitor_msg_ds) * tp->task_queue_size);
     pthread_mutex_init(&(tp->task_lock), NULL);
     pthread_cond_init(&(tp->task_cond), NULL);
     tp->head = tp->tail = 0;
@@ -48,12 +48,12 @@ int push(task_queue *tp, void *arg) {
 
 void* pop(task_queue *tp) {
     pthread_mutex_lock(&(tp->task_lock));
+    //判断是否满足执行条件，不满足执行条件，调用pthread_cond_wait阻塞。
+    //如果两个或两个以上的进程同时访问队列，需要使用while。考虑一种情况，有两个线程A,B。A先获得互斥锁，然后执行，释放所。然后B获得互斥锁，但是资源没了，B
+    //有两个选择，1.访问空的资源，2.继续等待。继续等待就需要使用while。
+    //如果只有一个线程访问队列，可以使用if
     while (is_empty(tp)) {
         pthread_cond_wait(&(tp->task_cond), &(tp->task_lock));
-    }
-    if (is_empty(tp)) {
-        pthread_mutex_unlock(&(tp->task_lock));
-        return NULL;
     }
     tp->cur_num--;
     struct monitor_msg_ds *msg = &tp->data[tp->head];

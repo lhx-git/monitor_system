@@ -25,10 +25,14 @@
 
 #define SYS_MEM 0x04
 #define SYS_CPU 0x08
+#define SYS_DISK 0x10
+#define SYS_SYS 0x20
+
+#define MSG_BUFF_SIZE 500
 
 struct monitor_msg_ds {
     long type;
-    char buff[200];
+    char buff[MSG_BUFF_SIZE];
 };
 
 
@@ -39,6 +43,9 @@ struct client_ds {
 };
 void heart_beat(int signum);
 void check_for_mem();
+void check_for_cpu();
+void check_for_disk();
+void check_for_sys();
 void *do_task(void *arg);
 void *do_login(void *arg);
 void *work_on_reactor(void *arg);
@@ -47,6 +54,6 @@ void *do_msg_queue(void *arg);
 void *heart_beat_from_client(void *arg);
 int open_file(char *filename);
 void empty_file(char *filename);
-void do_with_file(char *filename);
+void do_with_file(int msg_type, int msg_lines, char *filename);
 int relogin();
 #endif

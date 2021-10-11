@@ -12,9 +12,18 @@ int relogin_num = 3;
 int server_port, msg_id, sockfd, per_fd, check_for_relogin = 3;
 char token[100];
 char *config = "/home/lhx/CProject/monitor_system/client/monitor.conf";
-char *mem_persistence = "/home/lhx/CProject/monitor_system/client/persistence";
+char *mem_persistence = "/home/lhx/CProject/monitor_system/client/mem_persistence";
+char *cpu_persistence = "/home/lhx/CProject/monitor_system/client/cpu_persistence";
+char *disk_persistence = "/home/lhx/CProject/monitor_system/client/disk_persistence";
+char *sys_persistence = "/home/lhx/CProject/monitor_system/client/sys_persistence";
 char cpu_buf[100];
 char mem_buf[100];
+char disk_buf[100];
+char sys_buf[200];
+int mem_lines = 7;
+int cpu_lines = 9;
+int disk_lines = 7;
+int sys_lines = 17;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -103,40 +112,3 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-/*void *heart_beat_from_client(void *arg) {
-    while (1) {
-        pthread_cond_wait(&cond, &mutex);
-        //do_login
-    }
-}
-
-
-void *do_work(void *arg) {
-    while (1) {
-        //check for cpu(popen) 
-        //每check一次，变量temp_for_relogin--;
-        if (--temp_for_relogin == 0) {
-            signal(cond);
-        }
-        //数据如何发送
-        //将数据压入消息队列：任务队列
-    }
-}
-
-
-void *do_msg_queue(void *arg) {
-    while (1) {
-        //拿出数据
-        //检查数据可靠性
-        //构造成json对象
-        //序列化，发送
-        //如果发送不成功
-        //数据持久化->文件
-    }
-}
-
-
-void do_with_file() {
-    //read from File
-    //
-}*/

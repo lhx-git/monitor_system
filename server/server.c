@@ -12,7 +12,7 @@ struct client_ds *clients;
 
 int main(int argc, char **argv) {
     int opt;
-    task_queue *tq = task_queue_init(10000);
+    task_queue *tq = task_queue_init(400);
     //实现守护进程
     pthread_t login_tid, reactor_tid;
     while ((opt = getopt(argc, argv, "p:t:m:")) != -1) {

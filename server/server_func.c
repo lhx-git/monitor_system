@@ -13,28 +13,122 @@ void *do_task(void *args) {
     task_queue *tq = (task_queue *)args;
     while (1) {
             struct monitor_msg_ds* msg = pop(tq);
-            if (msg == NULL) {
-                DBG(RED"msg is empty!!\n");
-                continue;
-            }
             //解析cJSON数据
-            cJSON *mem_data;
-            mem_data = cJSON_Parse(msg->buff);
-            cJSON *now_time = NULL;
-            cJSON *total_mem_value = NULL;
-            cJSON *left_mem_value = NULL;
-            cJSON *mem_usage_rate = NULL;
-            cJSON *mem_prediction_rate = NULL;
-            now_time = cJSON_GetObjectItem(mem_data, "now_time");
-            total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
-            left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
-            mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
-            mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
-            DBG(BLUE"%s\n", now_time->valuestring);
-            DBG(BLUE"%s\n", total_mem_value->valuestring);
-            DBG(BLUE"%s\n", left_mem_value->valuestring);
-            DBG(BLUE"%s\n", mem_usage_rate->valuestring);
-            DBG(BLUE"%s\n", mem_prediction_rate->valuestring);
+            if (msg->type == SYS_MEM) {
+                cJSON *mem_data;
+                mem_data = cJSON_Parse(msg->buff);
+                cJSON *now_time = NULL;
+                cJSON *total_mem_value = NULL;
+                cJSON *left_mem_value = NULL;
+                cJSON *mem_usage_rate = NULL;
+                cJSON *mem_prediction_rate = NULL;
+                now_time = cJSON_GetObjectItem(mem_data, "now_time");
+                total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
+                left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
+                mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
+                mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
+                DBG(YELLOW"Mem INFO\n");
+                DBG(BLUE"%s\n", now_time->valuestring);
+                DBG(BLUE"%s\n", total_mem_value->valuestring);
+                DBG(BLUE"%s\n", left_mem_value->valuestring);
+                DBG(BLUE"%s\n", mem_usage_rate->valuestring);
+                DBG(BLUE"%s\n", mem_prediction_rate->valuestring);
+            } else if (msg->type == SYS_CPU) {
+                cJSON *mem_data;
+                mem_data = cJSON_Parse(msg->buff);
+                cJSON *now_time = NULL;
+                cJSON *load_avg_1 = NULL;
+                cJSON *load_avg_2 = NULL;
+                cJSON *load_avg_3 = NULL;
+                cJSON *utilization = NULL;
+                cJSON *temperature = NULL;
+                cJSON *warning = NULL;
+                now_time = cJSON_GetObjectItem(mem_data, "now_time");
+                load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
+                load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
+                load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
+                utilization = cJSON_GetObjectItem(mem_data, "utilization");
+                temperature = cJSON_GetObjectItem(mem_data, "temperature");
+                warning = cJSON_GetObjectItem(mem_data, "warning");
+                DBG(YELLOW"CPU INFO\n");
+                DBG(BLUE"%s\n", now_time->valuestring);
+                DBG(BLUE"%s\n", load_avg_1->valuestring);
+                DBG(BLUE"%s\n", load_avg_2->valuestring);
+                DBG(BLUE"%s\n", load_avg_3->valuestring);
+                DBG(BLUE"%s\n", utilization->valuestring);
+                DBG(BLUE"%s\n", temperature->valuestring);
+                DBG(BLUE"%s\n", warning->valuestring);
+            } else if (msg->type == SYS_DISK) {
+                cJSON *mem_data;
+                mem_data = cJSON_Parse(msg->buff);
+                cJSON *now_time = NULL;
+                cJSON *disk_size = NULL;
+                cJSON *used_space = NULL;
+                cJSON *avail_space = NULL;
+                cJSON *utilization = NULL;
+                now_time = cJSON_GetObjectItem(mem_data, "now_time");
+                disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
+                used_space = cJSON_GetObjectItem(mem_data, "used_space");
+                avail_space = cJSON_GetObjectItem(mem_data, "avail_space");
+                utilization = cJSON_GetObjectItem(mem_data, "utilization");
+                DBG(YELLOW"DISK INFO\n");
+                DBG(BLUE"%s\n", now_time->valuestring);
+                DBG(BLUE"%s\n", disk_size->valuestring);
+                DBG(BLUE"%s\n", used_space->valuestring);
+                DBG(BLUE"%s\n", avail_space->valuestring);
+                DBG(BLUE"%s\n", utilization->valuestring);
+            } else if (msg->type == SYS_SYS) {
+                cJSON *mem_data;
+                mem_data = cJSON_Parse(msg->buff);
+                cJSON *now_time = NULL;
+                cJSON *hostname = NULL;
+                cJSON *os_version = NULL;
+                cJSON *kernel_version = NULL;
+                cJSON *running_time = NULL;
+                cJSON *load_avg_1 = NULL;
+                cJSON *load_avg_2 = NULL;
+                cJSON *load_avg_3 = NULL;
+                cJSON *disk_size = NULL;
+                cJSON *disk_utilization = NULL;
+                cJSON *mem_size = NULL;
+                cJSON *mem_utilization = NULL;
+                cJSON *disk_stat = NULL;
+                cJSON *mem_stat = NULL;
+                cJSON *cpu_stat = NULL;
+                now_time = cJSON_GetObjectItem(mem_data, "now_time");
+                hostname = cJSON_GetObjectItem(mem_data, "hostname");
+                os_version = cJSON_GetObjectItem(mem_data, "os_version");
+                kernel_version = cJSON_GetObjectItem(mem_data, "kernel_version");
+                running_time = cJSON_GetObjectItem(mem_data, "running_time");
+                load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
+                load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
+                load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
+                disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
+                disk_utilization = cJSON_GetObjectItem(mem_data, "disk_utilization");
+                mem_size = cJSON_GetObjectItem(mem_data, "mem_size");
+                mem_utilization = cJSON_GetObjectItem(mem_data, "mem_utilization");
+                disk_stat = cJSON_GetObjectItem(mem_data, "disk_stat");
+                mem_stat = cJSON_GetObjectItem(mem_data, "mem_stat");
+                cpu_stat = cJSON_GetObjectItem(mem_data, "cpu_stat");
+                DBG(YELLOW"SYS INFO\n");
+                DBG(BLUE"%s\n", now_time->valuestring);
+                DBG(BLUE"%s\n", hostname->valuestring);
+                DBG(BLUE"%s\n", os_version->valuestring);
+                DBG(BLUE"%s\n", load_avg_3->valuestring);
+                DBG(BLUE"%s\n", kernel_version->valuestring);
+                DBG(BLUE"%s\n", running_time->valuestring);
+                DBG(BLUE"%s\n", load_avg_1->valuestring);
+                DBG(BLUE"%s\n", load_avg_2->valuestring);
+                DBG(BLUE"%s\n", load_avg_3->valuestring);
+                DBG(BLUE"%s\n", disk_size->valuestring);
+                DBG(BLUE"%s\n", disk_utilization->valuestring);
+                DBG(BLUE"%s\n", mem_size->valuestring);
+                DBG(BLUE"%s\n", mem_utilization->valuestring);
+                DBG(BLUE"%s\n", disk_stat->valuestring);
+                DBG(BLUE"%s\n", mem_stat->valuestring);
+                DBG(BLUE"%s\n", cpu_stat->valuestring);
+            }
+
             //write to db
         }
 
@@ -60,7 +154,7 @@ void *work_on_reactor(void *arg) {
                 DBG(GREEN"<ACK> ack received from %s!\n", inet_ntoa(clients[sockfd].addr.sin_addr));
                 //同时有两个线程在写isonline
                 clients[sockfd].isonline = 5;
-            }  else if (msg.type & SYS_MEM) {
+            }  else if (msg.type == SYS_MEM || msg.type == SYS_CPU || msg.type == SYS_DISK || msg.type == SYS_SYS) {
                 push(tq, &msg);
                 DBG(YELLOW"tq size = %d\n", tq->cur_num);
             }
