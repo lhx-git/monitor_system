@@ -1,4 +1,5 @@
 #include "head.h"
+#include "mysql/mysql.h"
 
 #define MAXEVENTS 5
 extern char token[100];
@@ -11,8 +12,22 @@ void *do_task(void *args) {
     pthread_detach(pthread_self());
     DBG(RED"thread %lu is working\n", pthread_self());
     task_queue *tq = (task_queue *)args;
+    MYSQL *mysql = NULL;
+    if ((mysql = mysql_init(NULL)) == NULL) {
+        perror("error in mysql_init");
+        exit(1);
+    }
+    if (mysql_real_connect(mysql, "82.156.196.36", "lhx", "12345678", "mysql", 0, 0, 0)) {
+        fprintf(stdout, "connect success\n");
+    } else {
+        fprintf(stderr, "connect fail\n");
+        exit(1);
+    }
     while (1) {
+        //todo now_time may be empty
             struct monitor_msg_ds* msg = pop(tq);
+            //每次向数据库中写数据，就进行一次连接，然后断开，可以有优化成连接池。
+
             //解析cJSON数据
             if (msg->type == SYS_MEM) {
                 cJSON *mem_data;
@@ -27,12 +42,18 @@ void *do_task(void *args) {
                 left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
                 mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
                 mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
-                DBG(YELLOW"Mem INFO\n");
-                DBG(BLUE"%s\n", now_time->valuestring);
-                DBG(BLUE"%s\n", total_mem_value->valuestring);
-                DBG(BLUE"%s\n", left_mem_value->valuestring);
-                DBG(BLUE"%s\n", mem_usage_rate->valuestring);
-                DBG(BLUE"%s\n", mem_prediction_rate->valuestring);
+                char sql[500] = {0};
+                strcat(sql, "INSERT INTO monitor_mem_data (now_time, total_mem_value, left_mem_value, mem_usage_rate, mem_prediction_rate) VALUES ('");
+                strcat(sql, now_time->valuestring); strcat(sql, "', '");
+                strcat(sql, total_mem_value->valuestring); strcat(sql, "', '");
+                strcat(sql, left_mem_value->valuestring); strcat(sql, "', '");
+                strcat(sql, mem_usage_rate->valuestring); strcat(sql, "', '");
+                strcat(sql, mem_prediction_rate->valuestring); strcat(sql, "')");
+                DBG(YELLOW"%s\n", sql);
+                if (mysql_real_query(mysql, sql, strlen(sql))) {
+                    perror("error in mysql_real_query");
+                    exit(1);
+                }
             } else if (msg->type == SYS_CPU) {
                 cJSON *mem_data;
                 mem_data = cJSON_Parse(msg->buff);
@@ -50,14 +71,20 @@ void *do_task(void *args) {
                 utilization = cJSON_GetObjectItem(mem_data, "utilization");
                 temperature = cJSON_GetObjectItem(mem_data, "temperature");
                 warning = cJSON_GetObjectItem(mem_data, "warning");
-                DBG(YELLOW"CPU INFO\n");
-                DBG(BLUE"%s\n", now_time->valuestring);
-                DBG(BLUE"%s\n", load_avg_1->valuestring);
-                DBG(BLUE"%s\n", load_avg_2->valuestring);
-                DBG(BLUE"%s\n", load_avg_3->valuestring);
-                DBG(BLUE"%s\n", utilization->valuestring);
-                DBG(BLUE"%s\n", temperature->valuestring);
-                DBG(BLUE"%s\n", warning->valuestring);
+                char sql[500] = {0};
+                strcat(sql, "INSERT INTO monitor_cpu_data (now_time, load_avg_1, load_avg_2, load_avg_3, utilization, temperature, warning) VALUES ('");
+                strcat(sql, now_time->valuestring); strcat(sql, "', '");
+                strcat(sql, load_avg_1->valuestring); strcat(sql, "', '");
+                strcat(sql, load_avg_2->valuestring); strcat(sql, "', '");
+                strcat(sql, load_avg_3->valuestring); strcat(sql, "', '");
+                strcat(sql, utilization->valuestring); strcat(sql, "', '");
+                strcat(sql, temperature->valuestring); strcat(sql, "', '");
+                strcat(sql, warning->valuestring); strcat(sql, "')");
+                DBG(YELLOW"%s\n", sql);
+                if (mysql_real_query(mysql, sql, strlen(sql))) {
+                    perror("error in mysql_real_query");
+                    exit(1);
+                }
             } else if (msg->type == SYS_DISK) {
                 cJSON *mem_data;
                 mem_data = cJSON_Parse(msg->buff);
@@ -71,12 +98,18 @@ void *do_task(void *args) {
                 used_space = cJSON_GetObjectItem(mem_data, "used_space");
                 avail_space = cJSON_GetObjectItem(mem_data, "avail_space");
                 utilization = cJSON_GetObjectItem(mem_data, "utilization");
-                DBG(YELLOW"DISK INFO\n");
-                DBG(BLUE"%s\n", now_time->valuestring);
-                DBG(BLUE"%s\n", disk_size->valuestring);
-                DBG(BLUE"%s\n", used_space->valuestring);
-                DBG(BLUE"%s\n", avail_space->valuestring);
-                DBG(BLUE"%s\n", utilization->valuestring);
+                char sql[500] = {0};
+                strcat(sql, "INSERT INTO monitor_disk_data (now_time, disk_size, used_space, avail_space, utilization) VALUES ('");
+                strcat(sql, now_time->valuestring); strcat(sql, "', '");
+                strcat(sql, disk_size->valuestring); strcat(sql, "', '");
+                strcat(sql, used_space->valuestring); strcat(sql, "', '");
+                strcat(sql, avail_space->valuestring); strcat(sql, "', '");
+                strcat(sql, utilization->valuestring); strcat(sql, "')");
+                DBG(YELLOW"%s\n", sql);
+                if (mysql_real_query(mysql, sql, strlen(sql))) {
+                    perror("error in mysql_real_query");
+                    exit(1);
+                }
             } else if (msg->type == SYS_SYS) {
                 cJSON *mem_data;
                 mem_data = cJSON_Parse(msg->buff);
@@ -110,27 +143,34 @@ void *do_task(void *args) {
                 disk_stat = cJSON_GetObjectItem(mem_data, "disk_stat");
                 mem_stat = cJSON_GetObjectItem(mem_data, "mem_stat");
                 cpu_stat = cJSON_GetObjectItem(mem_data, "cpu_stat");
-                DBG(YELLOW"SYS INFO\n");
-                DBG(BLUE"%s\n", now_time->valuestring);
-                DBG(BLUE"%s\n", hostname->valuestring);
-                DBG(BLUE"%s\n", os_version->valuestring);
-                DBG(BLUE"%s\n", load_avg_3->valuestring);
-                DBG(BLUE"%s\n", kernel_version->valuestring);
-                DBG(BLUE"%s\n", running_time->valuestring);
-                DBG(BLUE"%s\n", load_avg_1->valuestring);
-                DBG(BLUE"%s\n", load_avg_2->valuestring);
-                DBG(BLUE"%s\n", load_avg_3->valuestring);
-                DBG(BLUE"%s\n", disk_size->valuestring);
-                DBG(BLUE"%s\n", disk_utilization->valuestring);
-                DBG(BLUE"%s\n", mem_size->valuestring);
-                DBG(BLUE"%s\n", mem_utilization->valuestring);
-                DBG(BLUE"%s\n", disk_stat->valuestring);
-                DBG(BLUE"%s\n", mem_stat->valuestring);
-                DBG(BLUE"%s\n", cpu_stat->valuestring);
+                char sql[500] = {0};
+                strcat(sql, "INSERT INTO monitor_sys_data (now_time, hostname, os_version, kernel_version, running_time, load_avg_1, load_avg_2, load_avg_3, disk_size, disk_utilization, mem_size, mem_utilization, disk_stat, mem_stat, cpu_stat) VALUES ('");
+                strcat(sql, now_time->valuestring); strcat(sql, "', '");
+                strcat(sql, hostname->valuestring); strcat(sql, "', '");
+                strcat(sql, os_version->valuestring); strcat(sql, "', '");
+                strcat(sql, kernel_version->valuestring); strcat(sql, "', '");
+                strcat(sql, running_time->valuestring); strcat(sql, "', '");
+                strcat(sql, load_avg_1->valuestring); strcat(sql, "', '");
+                strcat(sql, load_avg_2->valuestring); strcat(sql, "', '");
+                strcat(sql, load_avg_3->valuestring); strcat(sql, "', '");
+                strcat(sql, disk_size->valuestring); strcat(sql, "', '");
+                strcat(sql, disk_utilization->valuestring); strcat(sql, "', '");
+                strcat(sql, mem_size->valuestring); strcat(sql, "', '");
+                strcat(sql, mem_utilization->valuestring); strcat(sql, "', '");
+                strcat(sql, disk_stat->valuestring); strcat(sql, "', '");
+                strcat(sql, mem_stat->valuestring); strcat(sql, "', '");
+                strcat(sql, cpu_stat->valuestring); strcat(sql, "')");
+                DBG(YELLOW"%s\n", sql);
+                if (mysql_real_query(mysql, sql, strlen(sql))) {
+                    perror("error in mysql_real_query");
+                    exit(1);
+                }
             }
 
             //write to db
+
         }
+    mysql_close(mysql);
 
 }
 
@@ -156,7 +196,7 @@ void *work_on_reactor(void *arg) {
                 clients[sockfd].isonline = 5;
             }  else if (msg.type == SYS_MEM || msg.type == SYS_CPU || msg.type == SYS_DISK || msg.type == SYS_SYS) {
                 push(tq, &msg);
-                DBG(YELLOW"tq size = %d\n", tq->cur_num);
+                DBG(YELLOW"tq size = %d, msg_tpe = %d\n", tq->cur_num, msg.type);
             }
         }
     }

@@ -386,6 +386,8 @@ void do_with_file(int msg_type, int msg_lines, char *filename) {
             struct monitor_msg_ds msg;
             msg.type = msg_type;
             strncpy(msg.buff, temp, MSG_BUFF_SIZE);
+            //如果msg内是空的，就不发送给服务器了
+            if (strlen(msg.buff) == 0) break;
             memset(temp, 0, MSG_BUFF_SIZE);
             if (send(sockfd, (void *)&msg, sizeof (msg), 0) < 0) {
                 perror("send mem message");

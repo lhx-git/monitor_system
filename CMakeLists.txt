@@ -20,7 +20,7 @@ set(CLIENT_DEP client/client.c
 #生成可执行文件
 add_executable(server ${SERVER_DEP})
 #添加链接库
-target_link_libraries(server -lpthread)
+target_link_libraries(server -lpthread -lmysqlclient)
 
 add_executable(client ${CLIENT_DEP})
 target_link_libraries(client -lpthread)

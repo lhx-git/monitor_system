@@ -1,5 +1,6 @@
 
 #include "head.h"
+#include "mysql/mysql.h"
 static int opt;
 static int port;
 char *config = "/home/lhx/CProject/monitor_system/server/monitor.conf";
@@ -59,6 +60,11 @@ int main(int argc, char **argv) {
     //每隔一秒中产正一个时钟信号。
     setitimer(ITIMER_REAL, &itimer, NULL);
 
+    //初始化并连接数据库
+    if (mysql_library_init(0, NULL, NULL)) {
+        fprintf(stderr, "could not initialize MySQL client library\n");
+        exit(1);
+    }
 
     pthread_create(&login_tid, NULL, do_login, (void *)&server_listen);
     pthread_create(&reactor_tid, NULL, work_on_reactor, tq);
@@ -73,5 +79,6 @@ int main(int argc, char **argv) {
     while (1) {
         sleep(10);
     }
+    mysql_library_end();
     return 0;
  }
