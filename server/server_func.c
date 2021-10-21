@@ -1,10 +1,12 @@
 #include "head.h"
 #include "mysql/mysql.h"
+#include "db_connection_pool.h"
 
 #define MAXEVENTS 5
 extern char token[100];
 extern struct client_ds* clients;
 extern int epollfd, max, cur_max, server_listen;
+extern DB_CONN_POOL *db_conn_poll;;
 //todo finish theadpool
 
 void *do_task(void *args) {
@@ -12,17 +14,7 @@ void *do_task(void *args) {
     pthread_detach(pthread_self());
     DBG(RED"thread %lu is working\n", pthread_self());
     task_queue *tq = (task_queue *)args;
-    MYSQL *mysql = NULL;
-    if ((mysql = mysql_init(NULL)) == NULL) {
-        perror("error in mysql_init");
-        exit(1);
-    }
-    if (mysql_real_connect(mysql, "82.156.196.36", "lhx", "12345678", "mysql", 0, 0, 0)) {
-        fprintf(stdout, "connect success\n");
-    } else {
-        fprintf(stderr, "connect fail\n");
-        exit(1);
-    }
+    MYSQL *mysql = get_one_conn(db_conn_poll)->mysql;
     while (1) {
         //todo now_time may be empty
             struct monitor_msg_ds* msg = pop(tq);
@@ -51,8 +43,8 @@ void *do_task(void *args) {
                 strcat(sql, mem_prediction_rate->valuestring); strcat(sql, "')");
                 DBG(YELLOW"%s\n", sql);
                 if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    perror("error in mysql_real_query");
-                    exit(1);
+                    //
+                    DBG(RED"error in mysql_real_query mem\n");
                 }
             } else if (msg->type == SYS_CPU) {
                 cJSON *mem_data;
@@ -82,8 +74,7 @@ void *do_task(void *args) {
                 strcat(sql, warning->valuestring); strcat(sql, "')");
                 DBG(YELLOW"%s\n", sql);
                 if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    perror("error in mysql_real_query");
-                    exit(1);
+                    DBG(RED"error in mysql_real_query cpu\n");
                 }
             } else if (msg->type == SYS_DISK) {
                 cJSON *mem_data;
@@ -107,8 +98,7 @@ void *do_task(void *args) {
                 strcat(sql, utilization->valuestring); strcat(sql, "')");
                 DBG(YELLOW"%s\n", sql);
                 if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    perror("error in mysql_real_query");
-                    exit(1);
+                    DBG(RED"error in mysql_real_query disk\n");
                 }
             } else if (msg->type == SYS_SYS) {
                 cJSON *mem_data;
@@ -162,16 +152,14 @@ void *do_task(void *args) {
                 strcat(sql, cpu_stat->valuestring); strcat(sql, "')");
                 DBG(YELLOW"%s\n", sql);
                 if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    perror("error in mysql_real_query");
-                    exit(1);
+                    DBG(RED"error in mysql_real_query sys\n");
                 }
             }
 
             //write to db
 
         }
-    mysql_close(mysql);
-
+    release_conn(db_conn_poll, mysql);
 }
 
 void *work_on_reactor(void *arg) {

@@ -23,6 +23,7 @@ extern pthread_mutex_t mutex;
 char server_ip[20], token[100];
 
 
+
 void check_for_mem() {
     FILE *fp = NULL;
     if ((fp = popen("bash /home/lhx/CProject/monitor_system/script/Memlog.sh 50", "r")) == NULL) {

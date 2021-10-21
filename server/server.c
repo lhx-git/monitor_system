@@ -1,11 +1,13 @@
 
 #include "head.h"
 #include "mysql/mysql.h"
+#include "db_connection_pool.h"
 static int opt;
 static int port;
 char *config = "/home/lhx/CProject/monitor_system/server/monitor.conf";
 char token[100];
 int epollfd, max, cur_max, thread_num, server_listen;
+DB_CONN_POOL *db_conn_poll;
 
 struct client_ds *clients;
 
@@ -65,6 +67,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "could not initialize MySQL client library\n");
         exit(1);
     }
+    //创建连接池
+    db_conn_poll = create_conn_pool(20, "82.156.196.36", 0, "lhx", "12345678", "mysql");
 
     pthread_create(&login_tid, NULL, do_login, (void *)&server_listen);
     pthread_create(&reactor_tid, NULL, work_on_reactor, tq);
