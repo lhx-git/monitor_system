@@ -33,12 +33,13 @@ int socket_create(int port) {
     }
     return sockfd;
 }
-/*
+
 int socket_create_udp(int port) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
         return -1;
     }
+    DBG("sockfd %d", sockfd);
     struct sockaddr_in addr;
     addr.sin_family  = AF_INET;
     addr.sin_port = htons(port);
@@ -48,12 +49,9 @@ int socket_create_udp(int port) {
     if (bind(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr)) < 0) {
         return -1;
     }
-    //if (listen(sockfd, 8) < 0) {
-    //    return -1;
-    //}
     return sockfd;
 }
-*/
+
 int socket_connect(const char *ip, int port) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -63,21 +61,11 @@ int socket_connect(const char *ip, int port) {
     server.sin_family = AF_INET;
     server.sin_port = htons(port);
     server.sin_addr.s_addr = inet_addr(ip);
-
     if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0) {
         return -1;
     }
     return sockfd;
 }
-/*
-int socket_udp(){
-    int sockfd;
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        return -1;
-    }
-    return sockfd;
-}
-*/
 
 int recv_file_from_socket(int sockfd, char *name, char *dir) {
     char path[1024] = {0};
@@ -146,22 +134,39 @@ char *get_conf_value(const char *filename, const char *key) {
     fclose(fp);
     return conf_ans;
 }
-/*
-int accept_udp(int listener){
+
+
+int socket_udp() {
     int sockfd;
-    struct udp_data_ds msg;
-    bzero(&msg, sizeof(msg));
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("udp socket");
+        exit(1);
+    }
+    return sockfd;
+}
+
+int check_user(struct login_request *loginRequest) {
+    return 1;
+}
+
+int accept_udp(int listener, int port) {
+    int sockfd;
+    struct login_request loginRequest;
+    struct login_response loginResponse;
+    bzero(&loginRequest, sizeof(loginRequest));
+    bzero(&loginResponse, sizeof(loginResponse));
     struct sockaddr_in client;
     bzero(&client, sizeof(client));
     socklen_t len = sizeof(client);
-    int ret = recvfrom(listener, (void *)&msg, sizeof(msg), 0, (struct sockaddr *)&client, &len);
-    if (ret != sizeof(msg) || msg.flag & UDP_SYN == 0 ) {
-        DBG(RED"<SYN Error>"NONE"%s:%d...\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+    int ret = recvfrom(listener, (void *)&loginRequest, sizeof(loginRequest), 0, (struct sockaddr *)&client, &len);
+    if (ret != sizeof(loginRequest) || !check_user(&loginRequest)) {
+        DBG(RED"<loginRequest Error>"NONE"%s:%d...\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
         return -1;
     }
-    DBG(L_BLUE"<SYN recived>"NONE"%s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-    msg.flag = UDP_SYN_ACK;
-    if ((sockfd = socket_create_udp(9001)) < 0) {
+    DBG(L_BLUE"<loginRequest recived>"NONE"%s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+    loginResponse.ack = UDP_RES;
+    if ((sockfd = socket_create_udp(port)) < 0) {
         return -1;
     }
     int retval = connect(sockfd, (struct sockaddr *)&client, len);
@@ -169,36 +174,20 @@ int accept_udp(int listener){
         perror("connect retval");
     }
 
-    if (send(sockfd, (void *)&msg, sizeof(msg), 0) < 0) {
+    if (send(sockfd, (void *)&loginResponse, sizeof(loginResponse), 0) < 0) {
         perror("send");
     }
-    DBG(L_BLUE"<SYNACK sent>"NONE"%s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-    //考虑时间 √
-    //listener到底是不是有可能收到别人的数据？
-    struct timeval tv;
-    tv.tv_usec = 0;
-    tv.tv_sec = 5;
-    fd_set rfds;
-    FD_ZERO(&rfds);
-    FD_SET(sockfd, &rfds);
-    if (select(sockfd + 1, &rfds, NULL, NULL, &tv) <= 0) {
-        DBG(RED"<ACK TimeOut>"NONE"%s:%d...\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-        return -1;
-    }
-    ret = recv(sockfd, (void *)&msg, sizeof(msg), 0);
-    if (ret != sizeof(msg) || msg.flag & UDP_ACK == 0 ) {
-        DBG(RED"<ACK Error>"NONE"%s:%d...\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-        return -1;
-    }
-    DBG(L_BLUE"<ACK recievd>"NONE"%s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+    DBG(L_BLUE"<loginResponse sent>"NONE"%s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+    DBG(GREEN"<Connect Success>"NONE"%s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
     //connected
     return sockfd;
 }
 
-int socket_connect_udp(const char *ip, int port) {
-    struct udp_data_ds msg;
+int socket_connect_udp(const char *ip, int port, struct login_request *loginRequest) {
+    //struct udp_data_ds msg;
+    struct login_response loginResponse;
     int sockfd;
-    if ((sockfd = socket_create_udp(9002)) < 0) {
+    if ((sockfd = socket_udp()) < 0) {
         return -1;
     }
     struct sockaddr_in server;
@@ -208,9 +197,8 @@ int socket_connect_udp(const char *ip, int port) {
     if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0) {
         return -1;
     }
-    msg.flag = UDP_SYN;
-    send(sockfd, (void *)&msg, sizeof(msg), 0);
-    DBG(L_BLUE"<SYN Sent>"NONE"%s:%d...\n", ip, port);
+    send(sockfd, (void *)loginRequest, sizeof(struct login_request), 0);
+    DBG(L_BLUE"<loginRequest Sent>"NONE"%s:%d...\n", ip, port);
     fd_set rfds;
     FD_ZERO(&rfds);
     FD_SET(sockfd, &rfds);
@@ -218,21 +206,19 @@ int socket_connect_udp(const char *ip, int port) {
     tv.tv_sec = 5;
     tv.tv_usec = 0;
     if (select(sockfd + 1, &rfds, NULL, NULL, &tv) <= 0) {
-        DBG(RED"<SYNACK TimeOut>"NONE"%s:%d...\n", ip, port);
+        DBG(RED"<loginRequest TimeOut>"NONE"%s:%d...\n", ip, port);
         return -1;
     }
-    int ret = recv(sockfd, (void *)&msg, sizeof(msg), 0);
-    if (ret != sizeof(msg) || msg.flag & UDP_SYN_ACK == 0 ) {
-        DBG(RED"<SYNACK Error>"NONE"%s:%d...\n", ip, port);
+    int ret = recv(sockfd, (void *)&loginResponse, sizeof(loginResponse), 0);
+    if (ret != sizeof(loginResponse) || (loginResponse.ack & UDP_RES) == 0) {
+        DBG(RED"<loginResponse Error>"NONE"%s:%d...\n", ip, port);
         return -1;
     }
-    msg.flag = UDP_ACK;
-    send(sockfd, (void *)&msg, sizeof(msg), 0);
-    DBG(L_BLUE"<SYNACK Sent>"NONE"%s:%d...\n", ip, port);
     DBG(GREEN"<Connected>"NONE"%s:%d\n", ip, port);
     return sockfd;
 }
-*/
+
+
 void add_to_reactor(int fd, int epollfd) {
     struct epoll_event ev;
     ev.data.fd = fd;

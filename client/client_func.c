@@ -9,7 +9,7 @@ extern char mem_buf[100];
 extern char cpu_buf[100];
 extern char disk_buf[100];
 extern char sys_buf[200];
-extern int msg_id, sockfd, per_fd, server_port, check_for_relogin, relogin_num;
+extern int msg_id, sockfd, per_fd, server_port, check_for_relogin, relogin_num, udp_sockfd, udp_server_port;
 extern char *mem_persistence;
 extern char *cpu_persistence;
 extern char *disk_persistence;
@@ -290,14 +290,22 @@ void *do_msg_queue(void *arg) {
             struct monitor_msg_ds msg;
             msg.type = SYS_SYS;
             strcpy(msg.buff, str);
-            if (send(sockfd, (void *)&msg, sizeof (msg), 0) < 0) {
-                per_fd = open_file(sys_persistence);
-                if (write(per_fd, str, strlen(str)) < 0) {
-                    perror("write sys persistence file");
-                    exit(1);
+            cJSON *disk_stat = cJSON_GetObjectItem(mem_data, "disk_stat");
+            cJSON *mem_stat = cJSON_GetObjectItem(mem_data, "mem_stat");
+            cJSON *cpu_stat = cJSON_GetObjectItem(mem_data, "cpu_stat");
+            //紧急数据，udp发送
+            if (strcmp(disk_stat->valuestring,"warning") == 0 || strcmp(mem_stat->valuestring,"warning") == 0 || strcmp(cpu_stat->valuestring,"warning") == 0) {
+                send(udp_sockfd, (void *)&msg, sizeof(msg), 0);
+            } else {
+                if (send(sockfd, (void *)&msg, sizeof (msg), 0) < 0) {
+                    per_fd = open_file(sys_persistence);
+                    if (write(per_fd, str, strlen(str)) < 0) {
+                        perror("write sys persistence file");
+                        exit(1);
+                    }
+                    write(per_fd, "\n", 1);
+                    close(per_fd);
                 }
-                write(per_fd, "\n", 1);
-                close(per_fd);
             }
         }
     }

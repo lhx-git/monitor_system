@@ -8,7 +8,6 @@
 #ifndef _COLOR_H
 #define _COLOR_H
 #define NONE "\e[0m"           //清除颜色，即之后的打印为正常输出，之前的不受影响
-#define BLACK "\e[0;30m"  //深黑
 #define L_BLACK "\e[1;30m" //亮黑，偏灰褐
 #define RED "\e[0;31m" //深红，暗红
 #define L_RED "\e[1;31m" //鲜红

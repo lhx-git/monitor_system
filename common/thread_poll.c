@@ -6,7 +6,7 @@ task_queue* task_queue_init(int task_queue_size) {
     task_queue *tp = (task_queue *)malloc(sizeof(task_queue));
     tp->task_queue_size = task_queue_size;
     DBG(GREEN"init task que with size = %d\n", tp->task_queue_size);
-    tp->data = (int *)malloc(sizeof(struct monitor_msg_ds) * tp->task_queue_size);
+    tp->data = (struct monitor_msg_ds *)malloc(sizeof(struct monitor_msg_ds) * tp->task_queue_size);
     pthread_mutex_init(&(tp->task_lock), NULL);
     pthread_cond_init(&(tp->task_cond), NULL);
     tp->head = tp->tail = 0;

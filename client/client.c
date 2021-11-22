@@ -9,8 +9,8 @@
 
 char server_ip[20];
 int relogin_num = 3;
-int server_port, msg_id, sockfd, per_fd, check_for_relogin = 3;
-char token[100];
+int server_port, msg_id, sockfd, per_fd, check_for_relogin = 3, udp_sockfd;
+char token[20];
 char *config = "/home/lhx/CProject/monitor_system/client/monitor.conf";
 char *mem_persistence = "/home/lhx/CProject/monitor_system/client/mem_persistence";
 char *cpu_persistence = "/home/lhx/CProject/monitor_system/client/cpu_persistence";
@@ -58,7 +58,11 @@ int main(int argc, char **argv) {
     if (!server_port) server_port = atoi(get_conf_value(config, "SERVER_PORT"));
     if (!strlen(server_ip)) strcpy(server_ip, get_conf_value(config, "SERVER_IP"));
     if (!strlen(token)) strcpy(token, get_conf_value(config, "TOKEN"));
-    //connect
+
+    struct login_request *loginRequest;
+    strcpy(loginRequest->token, token);
+
+    //tcp connect
     if ((sockfd = socket_connect(server_ip, server_port)) < 0) {
         perror("socket_connect");
         exit(1);
@@ -93,6 +97,13 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Server Response Error!\n"NONE);
         exit(1);
     }
+
+    //udp connet
+    if ((udp_sockfd = socket_connect_udp(server_ip, server_port, loginRequest)) < 0) {
+        perror("socket_connect_udp");
+        exit(1);
+    }
+
     //新建一个检测线程，用以进行系统资源的获取
     pthread_create(&rid, NULL, do_work, NULL);
     pthread_create(&mid, NULL, do_msg_queue, NULL);

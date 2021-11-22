@@ -48,8 +48,9 @@ int socket_connect(const char *ip, int port);*/
 #include <math.h>
 #include <sys/msg.h>
 #include "color.h"
-#include "common.h"
 #include "monitor.h"
+#include "common.h"
+#include <mysql/mysql.h>
 #include "cJSON.h"
 #include "thread_poll.h"
 //#include "datatype.h"

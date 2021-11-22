@@ -5,9 +5,147 @@
 #define MAXEVENTS 5
 extern char token[100];
 extern struct client_ds* clients;
-extern int epollfd, max, cur_max, server_listen;
+extern int epollfd, max, cur_max, server_listen, udp_epollfd, port;
 extern DB_CONN_POOL *db_conn_poll;;
 //todo finish theadpool
+
+
+void deal_with_monitor_msg(struct monitor_msg_ds * msg, MYSQL *mysql) {
+    if (msg->type == SYS_MEM) {
+        cJSON *mem_data;
+        mem_data = cJSON_Parse(msg->buff);
+        cJSON *now_time = NULL;
+        cJSON *total_mem_value = NULL;
+        cJSON *left_mem_value = NULL;
+        cJSON *mem_usage_rate = NULL;
+        cJSON *mem_prediction_rate = NULL;
+        now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
+        left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
+        mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
+        mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
+        char sql[500] = {0};
+        strcat(sql, "INSERT INTO monitor_mem_data (now_time, total_mem_value, left_mem_value, mem_usage_rate, mem_prediction_rate) VALUES ('");
+        strcat(sql, now_time->valuestring); strcat(sql, "', '");
+        strcat(sql, total_mem_value->valuestring); strcat(sql, "', '");
+        strcat(sql, left_mem_value->valuestring); strcat(sql, "', '");
+        strcat(sql, mem_usage_rate->valuestring); strcat(sql, "', '");
+        strcat(sql, mem_prediction_rate->valuestring); strcat(sql, "')");
+        DBG(YELLOW"%s\n", sql);
+        if (mysql_real_query(mysql, sql, strlen(sql))) {
+            //
+            DBG(RED"error in mysql_real_query mem\n");
+        }
+    } else if (msg->type == SYS_CPU) {
+        cJSON *mem_data;
+        mem_data = cJSON_Parse(msg->buff);
+        cJSON *now_time = NULL;
+        cJSON *load_avg_1 = NULL;
+        cJSON *load_avg_2 = NULL;
+        cJSON *load_avg_3 = NULL;
+        cJSON *utilization = NULL;
+        cJSON *temperature = NULL;
+        cJSON *warning = NULL;
+        now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
+        load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
+        load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
+        utilization = cJSON_GetObjectItem(mem_data, "utilization");
+        temperature = cJSON_GetObjectItem(mem_data, "temperature");
+        warning = cJSON_GetObjectItem(mem_data, "warning");
+        char sql[500] = {0};
+        strcat(sql, "INSERT INTO monitor_cpu_data (now_time, load_avg_1, load_avg_2, load_avg_3, utilization, temperature, warning) VALUES ('");
+        strcat(sql, now_time->valuestring); strcat(sql, "', '");
+        strcat(sql, load_avg_1->valuestring); strcat(sql, "', '");
+        strcat(sql, load_avg_2->valuestring); strcat(sql, "', '");
+        strcat(sql, load_avg_3->valuestring); strcat(sql, "', '");
+        strcat(sql, utilization->valuestring); strcat(sql, "', '");
+        strcat(sql, temperature->valuestring); strcat(sql, "', '");
+        strcat(sql, warning->valuestring); strcat(sql, "')");
+        DBG(YELLOW"%s\n", sql);
+        if (mysql_real_query(mysql, sql, strlen(sql))) {
+            DBG(RED"error in mysql_real_query cpu\n");
+        }
+    } else if (msg->type == SYS_DISK) {
+        cJSON *mem_data;
+        mem_data = cJSON_Parse(msg->buff);
+        cJSON *now_time = NULL;
+        cJSON *disk_size = NULL;
+        cJSON *used_space = NULL;
+        cJSON *avail_space = NULL;
+        cJSON *utilization = NULL;
+        now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
+        used_space = cJSON_GetObjectItem(mem_data, "used_space");
+        avail_space = cJSON_GetObjectItem(mem_data, "avail_space");
+        utilization = cJSON_GetObjectItem(mem_data, "utilization");
+        char sql[500] = {0};
+        strcat(sql, "INSERT INTO monitor_disk_data (now_time, disk_size, used_space, avail_space, utilization) VALUES ('");
+        strcat(sql, now_time->valuestring); strcat(sql, "', '");
+        strcat(sql, disk_size->valuestring); strcat(sql, "', '");
+        strcat(sql, used_space->valuestring); strcat(sql, "', '");
+        strcat(sql, avail_space->valuestring); strcat(sql, "', '");
+        strcat(sql, utilization->valuestring); strcat(sql, "')");
+        DBG(YELLOW"%s\n", sql);
+        if (mysql_real_query(mysql, sql, strlen(sql))) {
+            DBG(RED"error in mysql_real_query disk\n");
+        }
+    } else if (msg->type == SYS_SYS) {
+        cJSON *mem_data;
+        mem_data = cJSON_Parse(msg->buff);
+        cJSON *now_time = NULL;
+        cJSON *hostname = NULL;
+        cJSON *os_version = NULL;
+        cJSON *kernel_version = NULL;
+        cJSON *running_time = NULL;
+        cJSON *load_avg_1 = NULL;
+        cJSON *load_avg_2 = NULL;
+        cJSON *load_avg_3 = NULL;
+        cJSON *disk_size = NULL;
+        cJSON *disk_utilization = NULL;
+        cJSON *mem_size = NULL;
+        cJSON *mem_utilization = NULL;
+        cJSON *disk_stat = NULL;
+        cJSON *mem_stat = NULL;
+        cJSON *cpu_stat = NULL;
+        now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        hostname = cJSON_GetObjectItem(mem_data, "hostname");
+        os_version = cJSON_GetObjectItem(mem_data, "os_version");
+        kernel_version = cJSON_GetObjectItem(mem_data, "kernel_version");
+        running_time = cJSON_GetObjectItem(mem_data, "running_time");
+        load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
+        load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
+        load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
+        disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
+        disk_utilization = cJSON_GetObjectItem(mem_data, "disk_utilization");
+        mem_size = cJSON_GetObjectItem(mem_data, "mem_size");
+        mem_utilization = cJSON_GetObjectItem(mem_data, "mem_utilization");
+        disk_stat = cJSON_GetObjectItem(mem_data, "disk_stat");
+        mem_stat = cJSON_GetObjectItem(mem_data, "mem_stat");
+        cpu_stat = cJSON_GetObjectItem(mem_data, "cpu_stat");
+        char sql[500] = {0};
+        strcat(sql, "INSERT INTO monitor_sys_data (now_time, hostname, os_version, kernel_version, running_time, load_avg_1, load_avg_2, load_avg_3, disk_size, disk_utilization, mem_size, mem_utilization, disk_stat, mem_stat, cpu_stat) VALUES ('");
+        strcat(sql, now_time->valuestring); strcat(sql, "', '");
+        strcat(sql, hostname->valuestring); strcat(sql, "', '");
+        strcat(sql, os_version->valuestring); strcat(sql, "', '");
+        strcat(sql, kernel_version->valuestring); strcat(sql, "', '");
+        strcat(sql, running_time->valuestring); strcat(sql, "', '");
+        strcat(sql, load_avg_1->valuestring); strcat(sql, "', '");
+        strcat(sql, load_avg_2->valuestring); strcat(sql, "', '");
+        strcat(sql, load_avg_3->valuestring); strcat(sql, "', '");
+        strcat(sql, disk_size->valuestring); strcat(sql, "', '");
+        strcat(sql, disk_utilization->valuestring); strcat(sql, "', '");
+        strcat(sql, mem_size->valuestring); strcat(sql, "', '");
+        strcat(sql, mem_utilization->valuestring); strcat(sql, "', '");
+        strcat(sql, disk_stat->valuestring); strcat(sql, "', '");
+        strcat(sql, mem_stat->valuestring); strcat(sql, "', '");
+        strcat(sql, cpu_stat->valuestring); strcat(sql, "')");
+        DBG(YELLOW"%s\n", sql);
+        if (mysql_real_query(mysql, sql, strlen(sql))) {
+            DBG(RED"error in mysql_real_query sys\n");
+        }
+    }
+}
 
 void *do_task(void *args) {
     //子线程脱离主线程，子线程运行结束后，自己进行资源回收。
@@ -17,148 +155,11 @@ void *do_task(void *args) {
     MYSQL *mysql = get_one_conn(db_conn_poll)->mysql;
     while (1) {
         //todo now_time may be empty
-            struct monitor_msg_ds* msg = pop(tq);
-            //每次向数据库中写数据，就进行一次连接，然后断开，可以有优化成连接池。
-
-            //解析cJSON数据
-            if (msg->type == SYS_MEM) {
-                cJSON *mem_data;
-                mem_data = cJSON_Parse(msg->buff);
-                cJSON *now_time = NULL;
-                cJSON *total_mem_value = NULL;
-                cJSON *left_mem_value = NULL;
-                cJSON *mem_usage_rate = NULL;
-                cJSON *mem_prediction_rate = NULL;
-                now_time = cJSON_GetObjectItem(mem_data, "now_time");
-                total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
-                left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
-                mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
-                mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
-                char sql[500] = {0};
-                strcat(sql, "INSERT INTO monitor_mem_data (now_time, total_mem_value, left_mem_value, mem_usage_rate, mem_prediction_rate) VALUES ('");
-                strcat(sql, now_time->valuestring); strcat(sql, "', '");
-                strcat(sql, total_mem_value->valuestring); strcat(sql, "', '");
-                strcat(sql, left_mem_value->valuestring); strcat(sql, "', '");
-                strcat(sql, mem_usage_rate->valuestring); strcat(sql, "', '");
-                strcat(sql, mem_prediction_rate->valuestring); strcat(sql, "')");
-                DBG(YELLOW"%s\n", sql);
-                if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    //
-                    DBG(RED"error in mysql_real_query mem\n");
-                }
-            } else if (msg->type == SYS_CPU) {
-                cJSON *mem_data;
-                mem_data = cJSON_Parse(msg->buff);
-                cJSON *now_time = NULL;
-                cJSON *load_avg_1 = NULL;
-                cJSON *load_avg_2 = NULL;
-                cJSON *load_avg_3 = NULL;
-                cJSON *utilization = NULL;
-                cJSON *temperature = NULL;
-                cJSON *warning = NULL;
-                now_time = cJSON_GetObjectItem(mem_data, "now_time");
-                load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
-                load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
-                load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
-                utilization = cJSON_GetObjectItem(mem_data, "utilization");
-                temperature = cJSON_GetObjectItem(mem_data, "temperature");
-                warning = cJSON_GetObjectItem(mem_data, "warning");
-                char sql[500] = {0};
-                strcat(sql, "INSERT INTO monitor_cpu_data (now_time, load_avg_1, load_avg_2, load_avg_3, utilization, temperature, warning) VALUES ('");
-                strcat(sql, now_time->valuestring); strcat(sql, "', '");
-                strcat(sql, load_avg_1->valuestring); strcat(sql, "', '");
-                strcat(sql, load_avg_2->valuestring); strcat(sql, "', '");
-                strcat(sql, load_avg_3->valuestring); strcat(sql, "', '");
-                strcat(sql, utilization->valuestring); strcat(sql, "', '");
-                strcat(sql, temperature->valuestring); strcat(sql, "', '");
-                strcat(sql, warning->valuestring); strcat(sql, "')");
-                DBG(YELLOW"%s\n", sql);
-                if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    DBG(RED"error in mysql_real_query cpu\n");
-                }
-            } else if (msg->type == SYS_DISK) {
-                cJSON *mem_data;
-                mem_data = cJSON_Parse(msg->buff);
-                cJSON *now_time = NULL;
-                cJSON *disk_size = NULL;
-                cJSON *used_space = NULL;
-                cJSON *avail_space = NULL;
-                cJSON *utilization = NULL;
-                now_time = cJSON_GetObjectItem(mem_data, "now_time");
-                disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
-                used_space = cJSON_GetObjectItem(mem_data, "used_space");
-                avail_space = cJSON_GetObjectItem(mem_data, "avail_space");
-                utilization = cJSON_GetObjectItem(mem_data, "utilization");
-                char sql[500] = {0};
-                strcat(sql, "INSERT INTO monitor_disk_data (now_time, disk_size, used_space, avail_space, utilization) VALUES ('");
-                strcat(sql, now_time->valuestring); strcat(sql, "', '");
-                strcat(sql, disk_size->valuestring); strcat(sql, "', '");
-                strcat(sql, used_space->valuestring); strcat(sql, "', '");
-                strcat(sql, avail_space->valuestring); strcat(sql, "', '");
-                strcat(sql, utilization->valuestring); strcat(sql, "')");
-                DBG(YELLOW"%s\n", sql);
-                if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    DBG(RED"error in mysql_real_query disk\n");
-                }
-            } else if (msg->type == SYS_SYS) {
-                cJSON *mem_data;
-                mem_data = cJSON_Parse(msg->buff);
-                cJSON *now_time = NULL;
-                cJSON *hostname = NULL;
-                cJSON *os_version = NULL;
-                cJSON *kernel_version = NULL;
-                cJSON *running_time = NULL;
-                cJSON *load_avg_1 = NULL;
-                cJSON *load_avg_2 = NULL;
-                cJSON *load_avg_3 = NULL;
-                cJSON *disk_size = NULL;
-                cJSON *disk_utilization = NULL;
-                cJSON *mem_size = NULL;
-                cJSON *mem_utilization = NULL;
-                cJSON *disk_stat = NULL;
-                cJSON *mem_stat = NULL;
-                cJSON *cpu_stat = NULL;
-                now_time = cJSON_GetObjectItem(mem_data, "now_time");
-                hostname = cJSON_GetObjectItem(mem_data, "hostname");
-                os_version = cJSON_GetObjectItem(mem_data, "os_version");
-                kernel_version = cJSON_GetObjectItem(mem_data, "kernel_version");
-                running_time = cJSON_GetObjectItem(mem_data, "running_time");
-                load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
-                load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
-                load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
-                disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
-                disk_utilization = cJSON_GetObjectItem(mem_data, "disk_utilization");
-                mem_size = cJSON_GetObjectItem(mem_data, "mem_size");
-                mem_utilization = cJSON_GetObjectItem(mem_data, "mem_utilization");
-                disk_stat = cJSON_GetObjectItem(mem_data, "disk_stat");
-                mem_stat = cJSON_GetObjectItem(mem_data, "mem_stat");
-                cpu_stat = cJSON_GetObjectItem(mem_data, "cpu_stat");
-                char sql[500] = {0};
-                strcat(sql, "INSERT INTO monitor_sys_data (now_time, hostname, os_version, kernel_version, running_time, load_avg_1, load_avg_2, load_avg_3, disk_size, disk_utilization, mem_size, mem_utilization, disk_stat, mem_stat, cpu_stat) VALUES ('");
-                strcat(sql, now_time->valuestring); strcat(sql, "', '");
-                strcat(sql, hostname->valuestring); strcat(sql, "', '");
-                strcat(sql, os_version->valuestring); strcat(sql, "', '");
-                strcat(sql, kernel_version->valuestring); strcat(sql, "', '");
-                strcat(sql, running_time->valuestring); strcat(sql, "', '");
-                strcat(sql, load_avg_1->valuestring); strcat(sql, "', '");
-                strcat(sql, load_avg_2->valuestring); strcat(sql, "', '");
-                strcat(sql, load_avg_3->valuestring); strcat(sql, "', '");
-                strcat(sql, disk_size->valuestring); strcat(sql, "', '");
-                strcat(sql, disk_utilization->valuestring); strcat(sql, "', '");
-                strcat(sql, mem_size->valuestring); strcat(sql, "', '");
-                strcat(sql, mem_utilization->valuestring); strcat(sql, "', '");
-                strcat(sql, disk_stat->valuestring); strcat(sql, "', '");
-                strcat(sql, mem_stat->valuestring); strcat(sql, "', '");
-                strcat(sql, cpu_stat->valuestring); strcat(sql, "')");
-                DBG(YELLOW"%s\n", sql);
-                if (mysql_real_query(mysql, sql, strlen(sql))) {
-                    DBG(RED"error in mysql_real_query sys\n");
-                }
-            }
-
-            //write to db
-
-        }
+        struct monitor_msg_ds *msg = pop(tq);
+        //每次向数据库中写数据，就进行一次连接，然后断开，可以有优化成连接池。
+        deal_with_monitor_msg(msg, mysql);
+        //解析cJSON数据
+    }
     release_conn(db_conn_poll, mysql);
 }
 
@@ -184,7 +185,7 @@ void *work_on_reactor(void *arg) {
                 clients[sockfd].isonline = 5;
             }  else if (msg.type == SYS_MEM || msg.type == SYS_CPU || msg.type == SYS_DISK || msg.type == SYS_SYS) {
                 push(tq, &msg);
-                DBG(YELLOW"tq size = %d, msg_tpe = %d\n", tq->cur_num, msg.type);
+                DBG(YELLOW"tq size = %d, msg_tpe = %ld\n", tq->cur_num, msg.type);
             }
         }
     }
@@ -280,5 +281,35 @@ void* do_login(void *arg) {
         ev.events = EPOLLIN;
         epoll_ctl(epollfd, EPOLL_CTL_ADD, sockfd, &ev);
         DBG(GREEN"<Reactor> : "NONE"add client to reactor!\n");
+    }
+}
+
+//use bit graph to detect if the user have been login?
+void* udp_deal_with (void *data) {
+    int listener = *((int*)data + 0);
+    int port = *((int*)data + 1);
+    DBG("udp listener: %d, port : %d", listener, port);
+    struct epoll_event events[MAXEVENTS];
+
+    for (;;) {
+        int ndfs = epoll_wait(epollfd, events, MAXEVENTS, -1);
+        if (ndfs <= 0) {
+            perror("epoll_wait");
+            exit(1);
+        }
+        for (int i = 0; i < ndfs; i++) {
+            int fd = events[i].data.fd;
+            if (fd == listener) {
+                int sockfd = accept_udp(listener, port);
+                if (sockfd < 0) {
+                    perror("accept_udp_game");
+                    exit(1);
+                }
+                //socket_fd = accept_udp
+                //epoll_ctl(sockfd -> epollfd)
+            } else {
+                //已经登录的用户
+            }
+        }
     }
 }

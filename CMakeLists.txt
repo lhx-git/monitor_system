@@ -29,3 +29,7 @@ target_link_libraries(server -lpthread -lmysqlclient)
 add_executable(client ${CLIENT_DEP})
 target_link_libraries(client -lpthread)
 
+add_executable(server_test test/server_test.c common/common.c)
+
+add_executable(client_test test/client_test.c common/common.c)
+
