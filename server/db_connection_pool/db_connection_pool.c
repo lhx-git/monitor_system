@@ -28,7 +28,7 @@ DB_CONN_POOL *create_conn_pool(int conn_node_num, char *ip, int port, char *user
         //创建成功
         db_conn_pool->nodes[i]->index = i;
     }
-    DBG(GREEN"db_conn_pool is started\n");
+    DBG(YELLOW"启动数据库连接池成功！！\n"GREEN);
     return db_conn_pool;
 }
 

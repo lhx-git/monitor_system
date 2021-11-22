@@ -5,7 +5,7 @@
 task_queue* task_queue_init(int task_queue_size) {
     task_queue *tp = (task_queue *)malloc(sizeof(task_queue));
     tp->task_queue_size = task_queue_size;
-    DBG(GREEN"init task que with size = %d\n", tp->task_queue_size);
+    DBG(GREEN"初始化任务队列大小 = %d\n"NONE, tp->task_queue_size);
     tp->data = (struct monitor_msg_ds *)malloc(sizeof(struct monitor_msg_ds) * tp->task_queue_size);
     pthread_mutex_init(&(tp->task_lock), NULL);
     pthread_cond_init(&(tp->task_cond), NULL);
@@ -39,7 +39,7 @@ int push(task_queue *tp, void *arg) {
     struct monitor_msg_ds *msg = (struct monitor_msg_ds *)arg;
     tp->data[tp->tail] = *msg;
     tp->cur_num++;
-    DBG(RED"<PUSH>\n");
+    DBG(GREEN"<PUSH>\n"NONE);
     tp->tail = (tp->tail + 1) % tp->task_queue_size;
     pthread_mutex_unlock(&(tp->task_lock));
     pthread_cond_broadcast(&(tp->task_cond));
@@ -57,7 +57,7 @@ void* pop(task_queue *tp) {
     }
     tp->cur_num--;
     struct monitor_msg_ds *msg = &tp->data[tp->head];
-    DBG(RED"<POP>\n");
+    DBG(GREEN"<POP>\n"NONE);
     tp->head = (tp->head + 1) % tp->task_queue_size;
     pthread_mutex_unlock(&(tp->task_lock));
     return msg;

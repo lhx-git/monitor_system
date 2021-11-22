@@ -59,8 +59,13 @@ int main(int argc, char **argv) {
     if (!strlen(server_ip)) strcpy(server_ip, get_conf_value(config, "SERVER_IP"));
     if (!strlen(token)) strcpy(token, get_conf_value(config, "TOKEN"));
 
-    struct login_request *loginRequest;
-    strcpy(loginRequest->token, token);
+    struct login_request loginRequest;
+    strcpy(loginRequest.token, token);
+
+    if ((udp_sockfd = socket_connect_udp(server_ip, server_port, &loginRequest)) < 0) {
+        perror("socket_connect_udp");
+        exit(1);
+    }
 
     //tcp connect
     if ((sockfd = socket_connect(server_ip, server_port)) < 0) {
@@ -98,11 +103,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    //udp connet
-    if ((udp_sockfd = socket_connect_udp(server_ip, server_port, loginRequest)) < 0) {
-        perror("socket_connect_udp");
-        exit(1);
-    }
+
 
     //新建一个检测线程，用以进行系统资源的获取
     pthread_create(&rid, NULL, do_work, NULL);

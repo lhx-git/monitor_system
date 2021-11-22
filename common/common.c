@@ -39,7 +39,6 @@ int socket_create_udp(int port) {
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
         return -1;
     }
-    DBG("sockfd %d", sockfd);
     struct sockaddr_in addr;
     addr.sin_family  = AF_INET;
     addr.sin_port = htons(port);
@@ -135,13 +134,10 @@ char *get_conf_value(const char *filename, const char *key) {
     return conf_ans;
 }
 
-
 int socket_udp() {
     int sockfd;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("udp socket");
-        exit(1);
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        return -1;
     }
     return sockfd;
 }
@@ -210,6 +206,7 @@ int socket_connect_udp(const char *ip, int port, struct login_request *loginRequ
         return -1;
     }
     int ret = recv(sockfd, (void *)&loginResponse, sizeof(loginResponse), 0);
+    //DBG(RED"ret = %d, loginResponse = %d\n", ret, sizeof(loginResponse));
     if (ret != sizeof(loginResponse) || (loginResponse.ack & UDP_RES) == 0) {
         DBG(RED"<loginResponse Error>"NONE"%s:%d...\n", ip, port);
         return -1;

@@ -7,23 +7,16 @@ extern char token[100];
 extern struct client_ds* clients;
 extern int epollfd, max, cur_max, server_listen, udp_epollfd, port;
 extern DB_CONN_POOL *db_conn_poll;;
-//todo finish theadpool
-
 
 void deal_with_monitor_msg(struct monitor_msg_ds * msg, MYSQL *mysql) {
     if (msg->type == SYS_MEM) {
         cJSON *mem_data;
         mem_data = cJSON_Parse(msg->buff);
-        cJSON *now_time = NULL;
-        cJSON *total_mem_value = NULL;
-        cJSON *left_mem_value = NULL;
-        cJSON *mem_usage_rate = NULL;
-        cJSON *mem_prediction_rate = NULL;
-        now_time = cJSON_GetObjectItem(mem_data, "now_time");
-        total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
-        left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
-        mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
-        mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
+        cJSON *now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        cJSON *total_mem_value = cJSON_GetObjectItem(mem_data, "total_mem_value");
+        cJSON *left_mem_value = cJSON_GetObjectItem(mem_data, "left_mem_value");
+        cJSON *mem_usage_rate = cJSON_GetObjectItem(mem_data, "mem_usage_rate");
+        cJSON *mem_prediction_rate = cJSON_GetObjectItem(mem_data, "mem_prediction_rate");
         char sql[500] = {0};
         strcat(sql, "INSERT INTO monitor_mem_data (now_time, total_mem_value, left_mem_value, mem_usage_rate, mem_prediction_rate) VALUES ('");
         strcat(sql, now_time->valuestring); strcat(sql, "', '");
@@ -39,20 +32,13 @@ void deal_with_monitor_msg(struct monitor_msg_ds * msg, MYSQL *mysql) {
     } else if (msg->type == SYS_CPU) {
         cJSON *mem_data;
         mem_data = cJSON_Parse(msg->buff);
-        cJSON *now_time = NULL;
-        cJSON *load_avg_1 = NULL;
-        cJSON *load_avg_2 = NULL;
-        cJSON *load_avg_3 = NULL;
-        cJSON *utilization = NULL;
-        cJSON *temperature = NULL;
-        cJSON *warning = NULL;
-        now_time = cJSON_GetObjectItem(mem_data, "now_time");
-        load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
-        load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
-        load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
-        utilization = cJSON_GetObjectItem(mem_data, "utilization");
-        temperature = cJSON_GetObjectItem(mem_data, "temperature");
-        warning = cJSON_GetObjectItem(mem_data, "warning");
+        cJSON *now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        cJSON *load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
+        cJSON *load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
+        cJSON *load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
+        cJSON *utilization = cJSON_GetObjectItem(mem_data, "utilization");
+        cJSON *temperature = cJSON_GetObjectItem(mem_data, "temperature");
+        cJSON *warning = cJSON_GetObjectItem(mem_data, "warning");
         char sql[500] = {0};
         strcat(sql, "INSERT INTO monitor_cpu_data (now_time, load_avg_1, load_avg_2, load_avg_3, utilization, temperature, warning) VALUES ('");
         strcat(sql, now_time->valuestring); strcat(sql, "', '");
@@ -69,16 +55,12 @@ void deal_with_monitor_msg(struct monitor_msg_ds * msg, MYSQL *mysql) {
     } else if (msg->type == SYS_DISK) {
         cJSON *mem_data;
         mem_data = cJSON_Parse(msg->buff);
-        cJSON *now_time = NULL;
-        cJSON *disk_size = NULL;
-        cJSON *used_space = NULL;
-        cJSON *avail_space = NULL;
-        cJSON *utilization = NULL;
-        now_time = cJSON_GetObjectItem(mem_data, "now_time");
-        disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
-        used_space = cJSON_GetObjectItem(mem_data, "used_space");
-        avail_space = cJSON_GetObjectItem(mem_data, "avail_space");
-        utilization = cJSON_GetObjectItem(mem_data, "utilization");
+        cJSON *now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        cJSON *disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
+        cJSON *used_space = cJSON_GetObjectItem(mem_data, "used_space");
+        cJSON *avail_space = cJSON_GetObjectItem(mem_data, "avail_space");
+        cJSON *utilization = cJSON_GetObjectItem(mem_data, "utilization");
+        //生成sql语句
         char sql[500] = {0};
         strcat(sql, "INSERT INTO monitor_disk_data (now_time, disk_size, used_space, avail_space, utilization) VALUES ('");
         strcat(sql, now_time->valuestring); strcat(sql, "', '");
@@ -93,37 +75,23 @@ void deal_with_monitor_msg(struct monitor_msg_ds * msg, MYSQL *mysql) {
     } else if (msg->type == SYS_SYS) {
         cJSON *mem_data;
         mem_data = cJSON_Parse(msg->buff);
-        cJSON *now_time = NULL;
-        cJSON *hostname = NULL;
-        cJSON *os_version = NULL;
-        cJSON *kernel_version = NULL;
-        cJSON *running_time = NULL;
-        cJSON *load_avg_1 = NULL;
-        cJSON *load_avg_2 = NULL;
-        cJSON *load_avg_3 = NULL;
-        cJSON *disk_size = NULL;
-        cJSON *disk_utilization = NULL;
-        cJSON *mem_size = NULL;
-        cJSON *mem_utilization = NULL;
-        cJSON *disk_stat = NULL;
-        cJSON *mem_stat = NULL;
-        cJSON *cpu_stat = NULL;
-        now_time = cJSON_GetObjectItem(mem_data, "now_time");
-        hostname = cJSON_GetObjectItem(mem_data, "hostname");
-        os_version = cJSON_GetObjectItem(mem_data, "os_version");
-        kernel_version = cJSON_GetObjectItem(mem_data, "kernel_version");
-        running_time = cJSON_GetObjectItem(mem_data, "running_time");
-        load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
-        load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
-        load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
-        disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
-        disk_utilization = cJSON_GetObjectItem(mem_data, "disk_utilization");
-        mem_size = cJSON_GetObjectItem(mem_data, "mem_size");
-        mem_utilization = cJSON_GetObjectItem(mem_data, "mem_utilization");
-        disk_stat = cJSON_GetObjectItem(mem_data, "disk_stat");
-        mem_stat = cJSON_GetObjectItem(mem_data, "mem_stat");
-        cpu_stat = cJSON_GetObjectItem(mem_data, "cpu_stat");
+        cJSON *now_time = cJSON_GetObjectItem(mem_data, "now_time");
+        cJSON *hostname = cJSON_GetObjectItem(mem_data, "hostname");
+        cJSON *os_version = cJSON_GetObjectItem(mem_data, "os_version");
+        cJSON *kernel_version = cJSON_GetObjectItem(mem_data, "kernel_version");
+        cJSON *running_time = cJSON_GetObjectItem(mem_data, "running_time");
+        cJSON *load_avg_1 = cJSON_GetObjectItem(mem_data, "load_avg_1");
+        cJSON *load_avg_2 = cJSON_GetObjectItem(mem_data, "load_avg_2");
+        cJSON *load_avg_3 = cJSON_GetObjectItem(mem_data, "load_avg_3");
+        cJSON *disk_size = cJSON_GetObjectItem(mem_data, "disk_size");
+        cJSON *disk_utilization = cJSON_GetObjectItem(mem_data, "disk_utilization");
+        cJSON *mem_size = cJSON_GetObjectItem(mem_data, "mem_size");
+        cJSON *mem_utilization = cJSON_GetObjectItem(mem_data, "mem_utilization");
+        cJSON *disk_stat = cJSON_GetObjectItem(mem_data, "disk_stat");
+        cJSON *mem_stat = cJSON_GetObjectItem(mem_data, "mem_stat");
+        cJSON *cpu_stat = cJSON_GetObjectItem(mem_data, "cpu_stat");
         char sql[500] = {0};
+        //生成sql语句
         strcat(sql, "INSERT INTO monitor_sys_data (now_time, hostname, os_version, kernel_version, running_time, load_avg_1, load_avg_2, load_avg_3, disk_size, disk_utilization, mem_size, mem_utilization, disk_stat, mem_stat, cpu_stat) VALUES ('");
         strcat(sql, now_time->valuestring); strcat(sql, "', '");
         strcat(sql, hostname->valuestring); strcat(sql, "', '");
@@ -150,7 +118,7 @@ void deal_with_monitor_msg(struct monitor_msg_ds * msg, MYSQL *mysql) {
 void *do_task(void *args) {
     //子线程脱离主线程，子线程运行结束后，自己进行资源回收。
     pthread_detach(pthread_self());
-    DBG(RED"thread %lu is working\n", pthread_self());
+    //DBG(GREEN"thread %lu is working\nNONE", pthread_self());
     task_queue *tq = (task_queue *)args;
     MYSQL *mysql = get_one_conn(db_conn_poll)->mysql;
     while (1) {
@@ -276,40 +244,43 @@ void* do_login(void *arg) {
         clients[sockfd].addr = client;
 
         //注册到反应堆中去
-        struct epoll_event ev;
-        ev.data.fd = sockfd;
-        ev.events = EPOLLIN;
-        epoll_ctl(epollfd, EPOLL_CTL_ADD, sockfd, &ev);
+        add_to_reactor(sockfd, epollfd);
         DBG(GREEN"<Reactor> : "NONE"add client to reactor!\n");
     }
 }
 
 //use bit graph to detect if the user have been login?
 void* udp_deal_with (void *data) {
-    int listener = *((int*)data + 0);
+    int udp_server_listen = *((int*)data + 0);
     int port = *((int*)data + 1);
-    DBG("udp listener: %d, port : %d", listener, port);
     struct epoll_event events[MAXEVENTS];
 
     for (;;) {
-        int ndfs = epoll_wait(epollfd, events, MAXEVENTS, -1);
+        int ndfs = epoll_wait(udp_epollfd, events, MAXEVENTS, -1);
         if (ndfs <= 0) {
             perror("epoll_wait");
             exit(1);
         }
         for (int i = 0; i < ndfs; i++) {
             int fd = events[i].data.fd;
-            if (fd == listener) {
-                int sockfd = accept_udp(listener, port);
+            if (fd == udp_server_listen) {
+                int sockfd = accept_udp(udp_server_listen, port);
                 if (sockfd < 0) {
                     perror("accept_udp_game");
                     exit(1);
                 }
-                //socket_fd = accept_udp
-                //epoll_ctl(sockfd -> epollfd)
+                add_to_reactor(sockfd, udp_epollfd);
             } else {
-                //已经登录的用户
+                //这里只能出现SYS类型的消息
+                struct monitor_msg_ds msg;
+                if (recv(fd, &msg, sizeof(msg), 0) < 0) {
+                    epoll_ctl(udp_epollfd, EPOLL_CTL_DEL, fd, NULL);
+                }
+                if (msg.type == SYS_SYS) {
+                    DBG(L_RED"发现警告信息！！！\n"NONE);
+                }
             }
         }
     }
+
 }
