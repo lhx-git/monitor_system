@@ -23,6 +23,18 @@ extern pthread_mutex_t mutex;
 char server_ip[20], token[100];
 
 
+void try_to_relogin() {
+    pthread_mutex_lock(&mutex);
+    DBG(RED"<check_for_relogin> : %d\n"NONE, check_for_relogin);
+    if (check_for_relogin == 0) {
+        pthread_mutex_unlock(&mutex);
+        pthread_cond_signal(&cond);
+    } else {
+        check_for_relogin--;
+        pthread_mutex_unlock(&mutex);
+    }
+    return ;
+}
 
 void check_for_mem() {
     FILE *fp = NULL;
@@ -38,17 +50,6 @@ void check_for_mem() {
         exit(1);
     }
     pclose(fp);
-    //由于两个线程可能同时修改check_for_relogin，所以用mutex
-    pthread_mutex_lock(&mutex);
-    DBG(GREEN"<check_for_relogin> : %d\n", check_for_relogin);
-    if (check_for_relogin == 0) {
-        pthread_mutex_unlock(&mutex);
-        pthread_cond_signal(&cond);
-        return ;
-    } else {
-        check_for_relogin--;
-    }
-    pthread_mutex_unlock(&mutex);
 }
 
 void check_for_cpu() {
@@ -178,6 +179,7 @@ void *do_msg_queue(void *arg) {
                 write(per_fd, "\n", 1);
                 //DBG(RED"per_fd = %d", per_fd);
                 close(per_fd);
+                try_to_relogin();
             }
         } else if (m.type == (long)SYS_CPU) {
             //检查数据可靠性
@@ -318,13 +320,15 @@ void *heart_beat_from_client(void *arg) {
         DBG(YELLOW"heart_beat_from_client thread was arise\n");
         pthread_mutex_lock(&mutex);
         //当check_for_relogin > 0时，该线程挂起。
-        while (check_for_relogin > 0) {//循环作用是当check_for_relogin！=0 时 线程意外被唤醒
+        while (check_for_relogin > 0) {
             pthread_cond_wait(&cond, &mutex);
         }
         DBG(RED"relogin\n");
         check_for_relogin = relogin_num;
-        sockfd++;
-        sleep(7);
+        //手动让客户端短线
+        //sockfd++;
+        //sleep(7);
+        //断线重连
         if (relogin() > 0) {
             do_with_file(SYS_MEM, mem_lines, mem_persistence);
             do_with_file(SYS_CPU, cpu_lines, cpu_persistence);
@@ -337,7 +341,6 @@ void *heart_beat_from_client(void *arg) {
 }
 
 int relogin() {
-    //如果原来的sockfd是可以发送数据的，说明与服务器仍保持链接。不需要relogin
     if ((sockfd = socket_connect(server_ip, server_port)) < 0) {
         perror("socket_connect");
         exit(1);
