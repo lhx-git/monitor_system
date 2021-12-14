@@ -1,22 +1,3 @@
-/*#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-int socket_create(int port);
-
-int socket_connect(const char *ip, int port);*/
-
-
-/*************************************************************************
-	> File Name: head.h
-	> Author: suyelu
-	> Mail: suyelu@126.com
-	> Created Time: Sat 03 Jul 2021 04:37:40 PM CST
- ************************************************************************/
-
 #ifndef _HEAD_H
 #define _HEAD_H
 #include <stdio.h>
@@ -39,7 +20,6 @@ int socket_connect(const char *ip, int port);*/
 #include <sys/time.h>
 #include <poll.h>
 #include <sys/epoll.h>
-//#include <ncurses.h>
 #include <locale.h>
 #include <pwd.h>
 #include <grp.h>
@@ -48,17 +28,10 @@ int socket_connect(const char *ip, int port);*/
 #include <math.h>
 #include <sys/msg.h>
 #include "color.h"
-#include "monitor.h"
+#include "msg.h"
 #include "common.h"
 #include <mysql/mysql.h>
-#include "cJSON.h"
-#include "thread_poll.h"
-//#include "datatype.h"
-//#include "file_transfer.h"
-//#include "wechat.h"
-//#include "wechat_ui.h"
-//#include "sem.h"
-//#include "pihealth.h"
-
-char conf_ans[512];
+#include "cJSON/cJSON.h"
+#include "../server/thread_pool/thread_poll.h"
+#include "../server/db_connection_pool/db_connection_pool.h"
 #endif

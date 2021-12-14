@@ -1,9 +1,3 @@
-/*************************************************************************
-	> File Name: color.h
-	> Author: suyelu
-	> Mail: suyelu@126.com
-	> Created Time: Sat 24 Jul 2021 08:52:32 PM CST
- ************************************************************************/
 
 #ifndef _COLOR_H
 #define _COLOR_H
@@ -30,4 +24,11 @@
 #define HIDE "\e[8m" //隐藏
 #define CLEAR "\e[2J" //清除
 #define CLRLINE "\r\e[K" //清除行
+
+//用于彩色打印
+#ifndef _R
+#define DBG(fmt, args...) printf(fmt, ##args)
+#else
+#define DBG(fmt, args...)
+#endif
 #endif
